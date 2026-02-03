@@ -3,13 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NDVI Project Map</title>
+    <title>NDVI Project Explorer</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         body { margin: 0; padding: 0; }
         #map { height: 100vh; width: 100%; }
+        
+        /* Coordinate and Zoom Display Style */
+        #map-info {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            pointer-events: none; /* Allows clicks to pass through to the map */
+            border: 1px solid #ccc;
+        }
+
         .map-title {
             position: absolute;
             top: 10px;
@@ -26,15 +43,20 @@
 <body>
 
 <div class="map-title">NDVI Project Explorer</div>
+
+<div id="map-info">
+    Lat: 0.0000, Lon: 0.0000 | Zoom: 0
+</div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // 1. Initialize the map (centered on a generic location - adjust as needed)
+    // 1. Initialize Map
     const map = L.map('map').setView([0, 0], 3);
 
-    // 2. Add a standard Base Map (OpenStreetMap)
+    // 2. Base Layers
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
@@ -44,11 +66,11 @@
         attribution: '© Google'
     });
 
-    // 3. Define your Earth Engine Layers
+    // 3. Earth Engine Layers
     const ndviLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ndvi-project-484422/maps/8e38d6aa273129e41523f1865a8491f9-b285f5b7f76bc48d602f603492ca9976/tiles/{z}/{x}/{y}', {
         attribution: 'Google Earth Engine',
         opacity: 0.7
-    });
+    }).addTo(map);
 
     const stripLineLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ndvi-project-484422/maps/9fb0cfd478686a75bb9e68b03ae934fd-eff7461a1b6c89d323447acaa3ca2925/tiles/{z}/{x}/{y}', {
         attribution: 'Google Earth Engine'
@@ -56,29 +78,36 @@
 
     const bordersLayer = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ndvi-project-484422/maps/7c489e410abe28e9c2fa6af47c439f7e-479e87b6c894c95117fa6f6340ff35c0/tiles/{z}/{x}/{y}', {
         attribution: 'Google Earth Engine'
-    });
+    }).addTo(map);
 
-    // 4. Grouping for Layer Control
-    const baseMaps = {
-        "Street Map": osm,
-        "Satellite": satellite
+    // 4. Controls
+    const baseMaps = { "Street Map": osm, "Satellite": satellite };
+    const overlayMaps = { 
+        "NDVI Map": ndviLayer, 
+        "Strip Lines": stripLineLayer, 
+        "Paddock Borders": bordersLayer 
     };
-
-    const overlayMaps = {
-        "NDVI Map": ndviLayer,
-        "Strip Lines": stripLineLayer,
-        "Paddock Borders": bordersLayer
-    };
-
-    // Add layers to map by default
-    ndviLayer.addTo(map);
-    bordersLayer.addTo(map);
-
-    // 5. Add a control box to toggle layers
     L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
-    // Optional: Auto-zoom to a specific area if you know the coordinates
-    // map.setView([LAT, LON], ZOOM_LEVEL);
+    // 5. COORDINATE & ZOOM TRACKER LOGIC
+    const infoBox = document.getElementById('map-info');
+
+    function updateInfo(e) {
+        const lat = e ? e.latlng.lat.toFixed(4) : map.getCenter().lat.toFixed(4);
+        const lng = e ? e.latlng.lng.toFixed(4) : map.getCenter().lng.toFixed(4);
+        const zoom = map.getZoom();
+        infoBox.innerHTML = `Lat: ${lat}, Lon: ${lng} | Zoom: ${zoom}`;
+    }
+
+    // Update on mouse move
+    map.on('mousemove', updateInfo);
+
+    // Update on zoom change
+    map.on('zoomend', () => updateInfo());
+
+    // Initialize display
+    updateInfo();
+
 </script>
 
 </body>
