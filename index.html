@@ -5,27 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Farm Biomass Dashboard</title>
     
-    <script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.321/ee_api_js.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@google/earthengine@0.1.321/build/earth-engine.js"></script>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
-        body { margin: 0; padding: 20px; font-family: sans-serif; background: #f4f4f4; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        #map { height: 500px; width: 100%; border-radius: 4px; border: 1px solid #ccc; }
-        .btn { padding: 10px 20px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; }
-        .btn:disabled { background: #95a5a6; }
-        #status { padding: 10px; background: #eee; border-radius: 4px; margin-top: 10px; font-family: monospace; }
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 1100px; margin: 0 auto 20px auto; }
+        #map { height: 600px; width: 100%; border-radius: 8px; border: 1px solid #ddd; }
+        .status-box { padding: 15px; background: #2c3e50; color: #ecf0f1; border-radius: 6px; margin: 15px 0; font-family: monospace; }
+        .btn { padding: 12px 24px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; margin-right: 10px; }
+        .btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+        #mapBtn { background: #2980b9; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <h1>Farm Biomass Dashboard</h1>
-        <button id="loginBtn" class="btn" onclick="startLogin()">Login to Google Earth Engine</button>
-        <button id="mapBtn" class="btn" onclick="loadMap()" disabled style="background: #2980b9;">Load NDVI Map</button>
-        <div id="status">Status: Waiting for user...</div>
+        <div class="status-box" id="status">Checking Library...</div>
+        <button id="loginBtn" class="btn" onclick="startLogin()">1. Login to Google</button>
+        <button id="mapBtn" class="btn" onclick="loadMap()" disabled>2. Load NDVI Map</button>
     </div>
 
     <div class="card">
@@ -33,66 +34,56 @@
     </div>
 
     <script>
-        // CONFIG
         const CLIENT_ID = '895621183163-ldkkoljnshjipv83jv4s91b2v3k7g7bk.apps.googleusercontent.com';
         const ASSET_ID = 'projects/ndvi-project-484422/assets/myfarm_paddocks';
         
         let map;
 
-        // Initialize Map on start
         window.onload = function() {
-            map = L.map('map').setView([-40.9, 174.8], 10);
+            map = L.map('map').setView([-40.9, 174.8], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             
-            // Check if library loaded
+            const status = document.getElementById('status');
             if (typeof ee === 'undefined') {
-                document.getElementById('status').innerHTML = "ERROR: Earth Engine Library NOT loaded. Check internet.";
-                document.getElementById('status').style.color = "red";
+                status.innerHTML = "ERROR: Library not found. Ensure you are connected to the internet.";
             } else {
-                document.getElementById('status').innerHTML = "Library loaded. Ready to login.";
+                status.innerHTML = "SYSTEM READY: Please Login.";
             }
         };
 
         function startLogin() {
             const status = document.getElementById('status');
-            status.innerHTML = "Attempting to open popup...";
+            status.innerHTML = "Opening Google Sign-in...";
 
-            try {
-                // Ensure popups are allowed!
-                ee.data.authenticateViaPopup(
-                    function() {
-                        status.innerHTML = "OAuth Success! Initializing...";
-                        ee.initialize(null, null, function() {
-                            status.innerHTML = "CONNECTED: Ready to load farm map.";
-                            document.getElementById('mapBtn').disabled = false;
-                            document.getElementById('loginBtn').style.background = "#bdc3c7";
-                        }, function(err) {
-                            status.innerHTML = "Init Error: " + err;
-                        });
-                    },
-                    function(err) {
-                        status.innerHTML = "Popup Error: " + JSON.stringify(err);
-                        console.error(err);
-                    }
-                );
-            } catch (e) {
-                status.innerHTML = "Exception: " + e.message;
-            }
+            ee.data.authenticateViaPopup(
+                () => {
+                    ee.initialize(null, null, () => {
+                        status.innerHTML = "CONNECTED: Ready to load map imagery.";
+                        document.getElementById('mapBtn').disabled = false;
+                        document.getElementById('loginBtn').disabled = true;
+                    }, (err) => { status.innerHTML = "Init Error: " + err; });
+                },
+                (err) => { 
+                    status.innerHTML = "Login failed. Check browser popup blocker.";
+                    console.error(err);
+                }
+            );
         }
 
         async function loadMap() {
             const status = document.getElementById('status');
-            status.innerHTML = "Loading satellite imagery...";
+            status.innerHTML = "Processing satellite data...";
             
             try {
                 const paddocks = ee.FeatureCollection(ASSET_ID);
                 const s2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                     .filterBounds(paddocks.geometry())
+                    .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', 30))
                     .sort('system:time_start', false)
                     .first();
 
                 const ndvi = s2.normalizedDifference(['B8', 'B4']).clip(paddocks);
-                const viz = {min: 0.2, max: 0.8, palette: ['white', 'brown', 'yellow', 'green', 'darkgreen']};
+                const viz = {min: 0.2, max: 0.8, palette: ['#FFFFFF', '#CE7E10', '#F1D155', '#228B22', '#004400']};
                 
                 const mapId = await new Promise((resolve, reject) => {
                     ndvi.getMapId(viz, (res, err) => res ? resolve(res) : reject(err));
@@ -101,7 +92,12 @@
                 const url = `https://earthengine.googleapis.com/map/${mapId.mapid}/{z}/{x}/{y}?token=${mapId.token}`;
                 L.tileLayer(url).addTo(map);
                 
-                status.innerHTML = "Map loaded successfully!";
+                paddocks.getBounds((bounds) => {
+                    const c = bounds.coordinates[0];
+                    map.fitBounds([[c[0][1], c[0][0]], [c[2][1], c[2][0]]]);
+                });
+
+                status.innerHTML = "SUCCESS: NDVI Map Loaded.";
             } catch (err) {
                 status.innerHTML = "Map Error: " + err;
             }
