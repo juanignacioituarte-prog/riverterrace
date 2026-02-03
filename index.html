@@ -11,95 +11,143 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
-        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f4f7f6; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 1100px; margin: 0 auto 20px auto; }
-        #map { height: 600px; width: 100%; border-radius: 8px; border: 1px solid #ddd; }
-        .status-box { padding: 15px; background: #2c3e50; color: #ecf0f1; border-radius: 6px; margin: 15px 0; font-family: monospace; }
-        .btn { padding: 12px 24px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; margin-right: 10px; }
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        #map { height: 550px; width: 100%; border-radius: 8px; border: 1px solid #ddd; background: #e5e5e5; }
+        .status-box { padding: 15px; background: #2c3e50; color: white; border-radius: 6px; margin: 15px 0; font-family: monospace; font-size: 14px; line-height: 1.4; }
+        .btn { padding: 12px 24px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; transition: 0.3s; }
+        .btn:hover { background: #2ecc71; }
         .btn:disabled { background: #bdc3c7; cursor: not-allowed; }
         #mapBtn { background: #2980b9; }
+        .error { color: #ff6b6b; font-weight: bold; }
+        .ready { color: #51cf66; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>Farm Biomass Dashboard</h1>
-        <div class="status-box" id="status">Checking Library...</div>
-        <button id="loginBtn" class="btn" onclick="startLogin()">1. Login to Google</button>
-        <button id="mapBtn" class="btn" onclick="loadMap()" disabled>2. Load NDVI Map</button>
-    </div>
+    <div class="container">
+        <div class="card">
+            <h1>Farm Biomass Dashboard</h1>
+            <p>Paddock: <strong>projects/ndvi-project-484422/assets/myfarm_paddocks</strong></p>
+            
+            <div id="status" class="status-box">Detecting Google Earth Engine library...</div>
 
-    <div class="card">
-        <div id="map"></div>
+            <button id="loginBtn" class="btn" onclick="startLogin()" disabled>1. Login to Google</button>
+            <button id="mapBtn" class="btn" onclick="loadMap()" disabled>2. Load NDVI Map</button>
+        </div>
+
+        <div class="card">
+            <div id="map"></div>
+        </div>
     </div>
 
     <script>
+        // CONFIGURATION
         const CLIENT_ID = '895621183163-ldkkoljnshjipv83jv4s91b2v3k7g7bk.apps.googleusercontent.com';
         const ASSET_ID = 'projects/ndvi-project-484422/assets/myfarm_paddocks';
         
         let map;
+        let checkInterval;
 
-        window.onload = function() {
+        // 1. SYSTEM CHECK: Wait for library to load
+        window.addEventListener('load', function() {
+            // Initialize Map early
             map = L.map('map').setView([-40.9, 174.8], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            
-            const status = document.getElementById('status');
-            if (typeof ee === 'undefined') {
-                status.innerHTML = "ERROR: Library not found. Ensure you are connected to the internet.";
-            } else {
-                status.innerHTML = "SYSTEM READY: Please Login.";
-            }
-        };
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
 
+            const status = document.getElementById('status');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            let attempts = 0;
+            checkInterval = setInterval(() => {
+                attempts++;
+                if (typeof ee !== 'undefined') {
+                    status.innerHTML = '<span class="ready">SYSTEM READY:</span> Library loaded. Please click Login.';
+                    loginBtn.disabled = false;
+                    clearInterval(checkInterval);
+                } else if (attempts > 10) {
+                    status.innerHTML = '<span class="error">ERROR:</span> Earth Engine Library (ee) is not defined.<br>' +
+                                     'Check if an Ad-Blocker is blocking Google scripts.';
+                    clearInterval(checkInterval);
+                } else {
+                    status.innerHTML = 'Connecting to Google services... (Attempt ' + attempts + ')';
+                }
+            }, 800);
+        });
+
+        // 2. GOOGLE LOGIN
         function startLogin() {
             const status = document.getElementById('status');
-            status.innerHTML = "Opening Google Sign-in...";
+            status.innerHTML = "Opening Google Sign-in Popup... (Ensure popups are allowed)";
 
-            ee.data.authenticateViaPopup(
-                () => {
-                    ee.initialize(null, null, () => {
-                        status.innerHTML = "CONNECTED: Ready to load map imagery.";
-                        document.getElementById('mapBtn').disabled = false;
-                        document.getElementById('loginBtn').disabled = true;
-                    }, (err) => { status.innerHTML = "Init Error: " + err; });
-                },
-                (err) => { 
-                    status.innerHTML = "Login failed. Check browser popup blocker.";
-                    console.error(err);
-                }
-            );
+            try {
+                ee.data.authenticateViaPopup(
+                    () => {
+                        status.innerHTML = "OAuth Success! Initializing Earth Engine...";
+                        ee.initialize(null, null, () => {
+                            status.innerHTML = '<span class="ready">CONNECTED:</span> Welcome. Click "Load NDVI Map" to fetch imagery.';
+                            document.getElementById('mapBtn').disabled = false;
+                            document.getElementById('loginBtn').disabled = true;
+                        }, (err) => {
+                            status.innerHTML = '<span class="error">Init Error:</span> ' + err;
+                        });
+                    },
+                    (err) => {
+                        status.innerHTML = '<span class="error">Login Failed:</span> Popup blocked or closed. ' + JSON.stringify(err);
+                        console.error(err);
+                    }
+                );
+            } catch (e) {
+                status.innerHTML = '<span class="error">Exception:</span> ' + e.message;
+            }
         }
 
+        // 3. LOAD MAP DATA
         async function loadMap() {
             const status = document.getElementById('status');
-            status.innerHTML = "Processing satellite data...";
+            status.innerHTML = "Filtering Sentinel-2 imagery for latest clear view...";
             
             try {
                 const paddocks = ee.FeatureCollection(ASSET_ID);
+                
+                // Fetch latest imagery
                 const s2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                     .filterBounds(paddocks.geometry())
                     .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', 30))
                     .sort('system:time_start', false)
                     .first();
 
+                // Calculate NDVI
                 const ndvi = s2.normalizedDifference(['B8', 'B4']).clip(paddocks);
-                const viz = {min: 0.2, max: 0.8, palette: ['#FFFFFF', '#CE7E10', '#F1D155', '#228B22', '#004400']};
+                
+                // Visualization
+                const viz = {
+                    min: 0.2, 
+                    max: 0.8, 
+                    palette: ['#FFFFFF', '#CE7E10', '#F1D155', '#228B22', '#004400']
+                };
                 
                 const mapId = await new Promise((resolve, reject) => {
                     ndvi.getMapId(viz, (res, err) => res ? resolve(res) : reject(err));
                 });
 
+                // Add to Leaflet
                 const url = `https://earthengine.googleapis.com/map/${mapId.mapid}/{z}/{x}/{y}?token=${mapId.token}`;
-                L.tileLayer(url).addTo(map);
+                L.tileLayer(url, { attribution: 'Google Earth Engine' }).addTo(map);
                 
+                // Zoom to farm
                 paddocks.getBounds((bounds) => {
                     const c = bounds.coordinates[0];
                     map.fitBounds([[c[0][1], c[0][0]], [c[2][1], c[2][0]]]);
                 });
 
-                status.innerHTML = "SUCCESS: NDVI Map Loaded.";
+                status.innerHTML = '<span class="ready">SUCCESS:</span> Latest NDVI Map loaded for your paddocks.';
             } catch (err) {
-                status.innerHTML = "Map Error: " + err;
+                status.innerHTML = '<span class="error">Map Error:</span> ' + err;
+                console.error(err);
             }
         }
     </script>
