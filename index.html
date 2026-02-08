@@ -1,166 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Farm Monitor Dashboard | Pro</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        :root { --accent: #27ae60; --warning-bg: #fff3cd; --warning-border: #ffeeba; --warning-text: #856404; --text-dark: #2c3e50; }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; height: 100vh; display: flex; background: #f0f2f5; overflow: hidden; }
-        
-        #map { flex-grow: 1; height: 100%; background: #000; z-index: 1; transition: height 0.3s ease; }
-        
-        #sidebar { width: 380px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; z-index: 2000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); transition: transform 0.3s ease; }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid #eee; background: white; }
-        .search-box { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+<meta charset="UTF-8">
+<title>Farm Monitor – Latest Sync</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        #biomass-list { flex-grow: 1; overflow-y: auto; padding: 15px; background: #f8faf9; }
-        .paddock-card { background: white; border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 12px; border-radius: 12px; border-left: 6px solid var(--accent); cursor: pointer; }
-        .reading-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; color: var(--text-dark); }
-        .growth-container { margin-top: 10px; padding: 12px; background: #eef9f2; border-radius: 8px; text-align: center; border: 1px solid #c3e6cb; }
-        .growth-value { display: block; font-size: 18px; font-weight: bold; color: var(--accent); }
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-        #dimmer-control { position: absolute; bottom: 30px; left: 15px; z-index: 1000; background: white; padding: 12px; border-radius: 8px; border: 1px solid #ccc; width: 140px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-        
-        /* Toggle Button for Mobile */
-        #mobile-toggle { display: none; position: absolute; bottom: 20px; right: 20px; z-index: 3000; background: var(--accent); color: white; border: none; padding: 15px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-weight: bold; cursor: pointer; }
+<style>
+html, body {
+    height: 100%;
+    margin: 0;
+}
 
-        /* --- SMART MOBILE FLIP --- */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            #mobile-toggle { display: block; }
-            
-            /* Initial State: Map 40%, Sidebar 60% */
-            #map { height: 40vh; width: 100%; }
-            #sidebar { width: 100%; height: 60vh; border-left: none; border-top: 1px solid #ddd; }
-            
-            /* Full Map State */
-            body.map-only #map { height: 100vh; }
-            body.map-only #sidebar { transform: translateY(100%); position: absolute; }
+body {
+    display: flex;
+    font-family: system-ui, sans-serif;
+    background: #f4f7f6;
+}
 
-            #dimmer-control { top: 10px; bottom: auto; left: 10px; width: 100px; padding: 8px; }
-        }
+#map {
+    flex: 1;
+    height: 100%;
+}
 
-        /* Landscape Mode Fix */
-        @media (max-width: 900px) and (orientation: landscape) {
-            #map { height: 100vh !important; }
-            #sidebar { display: none; }
-        }
-    </style>
+#sidebar {
+    width: 350px;
+    background: #fff;
+    border-left: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #eee;
+}
+
+.avg-card {
+    background: #27ae60;
+    color: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+#list {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-left: 5px solid #27ae60;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+#dimmer {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 999;
+    box-shadow: 0 4px 10px rgba(0,0,0,.15);
+}
+</style>
 </head>
-<body id="main-body">
 
-<button id="mobile-toggle" onclick="toggleView()">List</button>
+<body>
 
 <div id="map"></div>
 
-<div id="dimmer-control">
-    <label style="font-size:10px; font-weight:bold; display:block; margin-bottom:5px;">INTENSITY</label>
-    <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" value="0.6" style="width:100%">
+<div id="dimmer">
+<b style="font-size:11px;">NDVI OPACITY</b><br>
+<input type="range" id="opac" min="0" max="1" step="0.1" value="0.7">
 </div>
 
 <div id="sidebar">
     <div class="sidebar-header">
-        <h3 style="margin:0; color:var(--text-dark)">Paddock Ranking</h3>
-        <input type="text" id="paddockSearch" class="search-box" placeholder="Search paddocks...">
+        <div class="avg-card">
+            <div style="font-size:11px;">LATEST FARM AVG</div>
+            <div id="total-avg" style="font-size:28px;font-weight:bold;">–</div>
+        </div>
+        <input id="search" placeholder="Filter paddocks…" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;">
     </div>
-    <div id="biomass-list">
-        <div style="text-align:center; padding:50px; color:#999;">Updating data...</div>
-    </div>
+    <div id="list"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzMj0BfEvQAhFG4sW3dQV-xNvP-L-2S2IRawjdH5j7o0tXBTVy_BTdmJapopz2wMLiZ/exec"; 
-    let masterData = [];
-    let map, satellite, geeLayer1, geeLayer2;
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vRBBRftvApfrkHKVQh9FV1qsYVy3Y2whaHKfyAWJ5Ymbc1cTcw7IzB4epF8h_-rN1dxD-N7bdaJyp1V/pub?gid=0&single=true&output=csv";
 
-    function toggleView() {
-        const body = document.getElementById('main-body');
-        const btn = document.getElementById('mobile-toggle');
-        body.classList.toggle('map-only');
-        btn.innerText = body.classList.contains('map-only') ? "List" : "Map";
-        setTimeout(() => { map.invalidateSize(); }, 300);
-    }
+let map, ndviLayer;
+let latestData = [];
 
-    function initMap() {
-        satellite = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { opacity: 0.4 });
-        map = L.map('map', { center: [-42.6794, 172.8791], zoom: 15, layers: [satellite] });
+function initMap() {
+    map = L.map('map').setView([-42.6794, 172.8791], 14);
 
-        geeLayer1 = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ndvi-project-484422/maps/8e38d6aa273129e41523f1865a8491f9-b285f5b7f76bc48d602f603492ca9976/tiles/{z}/{x}/{y}', { opacity: 0.6 }).addTo(map);
-        geeLayer2 = L.tileLayer('https://earthengine.googleapis.com/v1/projects/ndvi-project-484422/maps/7c489e410abe28e9c2fa6af47c439f7e-479e87b6c894c95117fa6f6340ff35c0/tiles/{z}/{x}/{y}').addTo(map);
-        
-        document.getElementById('opacitySlider').oninput = (e) => {
-            const val = e.target.value;
-            satellite.setOpacity(val);
-            geeLayer1.setOpacity(val);
-        };
-    }
+    L.tileLayer(
+        'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        { maxZoom: 20 }
+    ).addTo(map);
 
-    async function loadFarmData() {
-        const listContainer = document.getElementById('biomass-list');
-        try {
-            const [rawRes, coordRes] = await Promise.all([
-                fetch(`${SCRIPT_URL}?sheet=rawdata`),
-                fetch(`${SCRIPT_URL}?sheet=Paddock_Coordinates`)
-            ]);
-            const rawJson = await rawRes.json();
-            const coordJson = await coordRes.json();
+    document.getElementById('opac').oninput = e => {
+        if (ndviLayer) ndviLayer.setOpacity(e.target.value);
+    };
+}
 
-            const groups = {};
-            rawJson.data.forEach(r => {
-                let name = String(r.paddock_name).trim();
-                if (name === "12") name = "TP12";
-                const cover = parseFloat(r.cover);
-                if (name && !isNaN(cover)) {
-                    if (!groups[name]) groups[name] = [];
-                    groups[name].push({ date: new Date(r.date), cover: cover });
+function parseNDVI(r) {
+    return parseFloat(
+        r.ndvi_effective ??
+        r.ndvi ??
+        r.ndvi_mean ??
+        r.ndvi_avg
+    ) || 0;
+}
+
+function parseDate(d) {
+    const t = new Date(d).getTime();
+    return isNaN(t) ? 0 : t;
+}
+
+function loadCSV() {
+    Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: res => {
+            console.log("ROWS LOADED:", res.data.length);
+
+            const best = {};
+
+            res.data.forEach(r => {
+                if (!r.paddock_name) return;
+
+                const score = parseDate(r.date_utc || r.date);
+                if (!best[r.paddock_name] || score > best[r.paddock_name].score) {
+                    best[r.paddock_name] = {
+                        name: r.paddock_name,
+                        date: r.date_utc || r.date || "–",
+                        ndvi: parseNDVI(r),
+                        url: (r.map_id || "").trim(),
+                        score
+                    };
                 }
             });
 
-            masterData = Object.keys(groups).map(name => {
-                const entries = groups[name].sort((a,b) => b.date - a.date);
-                const latest = entries[0];
-                const prev = entries[1] || null;
-                const searchName = (name === "TP12") ? "12" : name;
-                const c = coordJson.data.find(x => String(x["Paddock Name"]).trim() === searchName || String(x["Paddock Name"]).trim() === name);
-                
-                let growth = null, days = null;
-                if (prev) {
-                    days = Math.ceil(Math.abs(latest.date - prev.date) / 86400000);
-                    if (days > 0 && days <= 12) growth = ((latest.cover - prev.cover) / days).toFixed(1);
-                }
-                return { name, latest, growth, days, lat: c ? c.Latitude : null, lon: c ? c.Longitude : null };
-            }).sort((a,b) => b.latest.cover - a.latest.cover);
+            latestData = Object.values(best).sort((a,b)=>b.ndvi-a.ndvi);
 
-            renderCards(masterData);
-        } catch (e) { listContainer.innerHTML = "Error loading data."; }
-    }
+            if (latestData.length) {
+                const avg = latestData.reduce((s,p)=>s+p.ndvi,0)/latestData.length;
+                document.getElementById("total-avg").innerText = avg.toFixed(3);
+            } else {
+                document.getElementById("total-avg").innerText = "NO DATA";
+            }
 
-    function renderCards(data) {
-        const list = document.getElementById('biomass-list');
-        list.innerHTML = "";
-        data.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'paddock-card';
-            card.innerHTML = `
-                <h3 style="margin:0 0 5px 0;">${item.name}</h3>
-                <div class="reading-row"><span>Latest:</span><b>${Math.round(item.latest.cover)} kg</b></div>
-                ${item.growth ? `<div class="growth-container"><span class="growth-value">${item.growth} kg/day</span></div>` : ''}
+            render("");
+        }
+    });
+}
+
+function render(term) {
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    latestData
+        .filter(p => p.name.toLowerCase().includes(term.toLowerCase()))
+        .forEach(p => {
+            const c = document.createElement("div");
+            c.className = "card";
+            c.innerHTML = `
+                <div class="row"><b>${p.name}</b><small>${p.date}</small></div>
+                <div class="row"><span>NDVI</span><b>${p.ndvi.toFixed(3)}</b></div>
             `;
-            card.onclick = () => { 
-                if(item.lat) {
-                    if(window.innerWidth < 768) toggleView(); 
-                    map.flyTo([item.lat, item.lon], 17); 
-                }
-            };
-            list.appendChild(card);
+            c.onclick = () => loadNDVI(p.url);
+            list.appendChild(c);
         });
-    }
+}
 
-    initMap();
-    loadFarmData();
+function loadNDVI(url) {
+    if (!url || !url.includes("{z}")) {
+        alert("No tile-based NDVI map for this paddock.");
+        return;
+    }
+    if (ndviLayer) map.removeLayer(ndviLayer);
+
+    ndviLayer = L.tileLayer(url, {
+        opacity: document.getElementById("opac").value
+    }).addTo(map);
+}
+
+initMap();
+loadCSV();
+document.getElementById("search").oninput = e => render(e.target.value);
 </script>
+
 </body>
 </html>
