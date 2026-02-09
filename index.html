@@ -171,7 +171,7 @@
                         let cover = 0;
                         if (!isNaN(ndvi)) {
                             let base = 7305.83 - (18654.48 * ndvi) + (15529.47 * Math.pow(ndvi, 2));
-                            let multi = cloud > 30 ? 1.2 : (cloud > 20 ? 1.1 : (cloud > 10 ? 1.05 : 1));
+                            let multi = cloud > 30 ? 1.1 : (cloud > 20 ? 1.05 : (cloud > 10 ? 1 : 1));
                             cover = Math.max(0, Math.round(base * multi));
                         }
                         if(!history[name]) history[name] = [];
@@ -301,3 +301,4 @@
 </script>
 </body>
 </html>
+
