@@ -133,9 +133,12 @@ async function loadStatusSheets() {
             if(cols[0]) excludedPaddocks.set(cols[0], cols[1] || 'out');
         });
         const textPa = await resPa.text();
-        textPa.split('\n').filter(l => l.trim() !== '').slice(1).forEach(line => {
+        textPa.split('\n').filter(l => l.trim() !== '').forEach(line => {
+            // Split by comma and take the first column
             const name = line.split(',')[0].trim().toLowerCase();
-            if(name) partialPaddocks.add(name);
+            if(name) {
+                partialPaddocks.add(name);
+            }
         });
     } catch (e) { console.error("Status sheets error", e); }
 }
@@ -358,3 +361,4 @@ init();
 </script>
 </body>
 </html>
+
