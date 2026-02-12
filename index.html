@@ -43,24 +43,19 @@
         .legend-item { display: flex; align-items: center; font-size: 11px; margin-bottom: 5px; color: #555; font-weight: 600; }
         .legend-color { width: 14px; height: 14px; border-radius: 3px; margin-right: 10px; border: 1px solid rgba(0,0,0,0.1); }
 
-        /* FIXED: Force hidden by default with !important */
         .paddock-label { 
             background: rgba(255, 255, 255, 0.95) !important; 
             border: 1px solid #333 !important; 
-            font-weight: bold !important; 
-            padding: 2px 6px !important; 
+            padding: 4px 8px !important; 
             border-radius: 4px !important; 
             pointer-events: none !important; 
-            font-size: 11px !important; 
             color: #000 !important;
             opacity: 0 !important;
             transition: opacity 0.2s ease-in-out !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+            text-align: center !important;
+            line-height: 1.2 !important;
         }
-        /* Class to trigger visibility */
-        .paddock-label.show-label { 
-            opacity: 1 !important; 
-        }
+        .paddock-label.show-label { opacity: 1 !important; }
 
         .badge { color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
         #search { width:100%; padding:12px; border-radius:6px; border:1px solid #ddd; outline:none; box-sizing: border-box; }
@@ -79,7 +74,7 @@
             <div style="font-size: 9px; color: #999; margin-bottom: 8px; text-transform: uppercase;">Cover Scale (kgDM/ha)</div>
             <div class="legend-item"><div class="legend-color" style="background:#00441b"></div> > 2,800</div>
             <div class="legend-item"><div class="legend-color" style="background:#238b45"></div> 2,000 - 2,400</div>
-            <div class="legend-item"><div class="legend-color" style="background:#a1d99b"></div> < 1,200</div>
+            <div class="legend-item"><div class="legend-color" style="background:#a1d99b"></div> < 1,600</div>
             <hr style="border:0; border-top:1px solid #eee; margin:8px 0;">
             <div class="legend-item"><div class="legend-color" style="background:#3498db"></div> Partial Grazed</div>
             <div class="legend-item"><div class="legend-color" style="background:#ff7675"></div> Out of Rotation</div>
@@ -163,30 +158,22 @@ async function loadGeoJSON() {
             onEachFeature: (feature, layer) => {
                 const pName = feature.properties.name;
                 paddockMap[pName] = layer;
-                const center = layer.getBounds().getCenter();
                 
-                // Binding the tooltip
-                layer.bindTooltip(pName, { 
+                // Content will be updated in loadCSV once data is ready
+                layer.bindTooltip("", { 
                     permanent: true, 
                     direction: 'center', 
                     className: 'paddock-label'
                 });
 
-                // Manual hover listeners to toggle the CSS class
-                layer.on('mouseover', function(e) {
+                layer.on('mouseover', function() {
                     const tip = layer.getTooltip();
-                    if (tip && tip.getElement()) {
-                        tip.getElement().classList.add('show-label');
-                    }
+                    if (tip && tip.getElement()) tip.getElement().classList.add('show-label');
                 });
-
-                layer.on('mouseout', function(e) {
+                layer.on('mouseout', function() {
                     const tip = layer.getTooltip();
-                    if (tip && tip.getElement()) {
-                        tip.getElement().classList.remove('show-label');
-                    }
+                    if (tip && tip.getElement()) tip.getElement().classList.remove('show-label');
                 });
-
                 layer.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
                     const cardId = `card-${pName.replace(/\s+/g, '-')}`;
@@ -250,6 +237,10 @@ function updateGeoStyles() {
         const pName = layer.feature.properties.name;
         const p = paddockData.find(pd => pd.name === pName);
         if (!p) return;
+
+        // Update Tooltip Content with Cover
+        const tooltipContent = `<div style="font-weight:bold; font-size:12px;">${pName}</div><div style="font-size:11px; color:#27ae60;">${p.latest.cover} kgDM</div>`;
+        layer.setTooltipContent(tooltipContent);
 
         if (currentViewMode === 'cover') {
             let color = getCoverColor(p.latest.cover);
