@@ -2,49 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Farm Monitor Pro | Feed Wedge</title>
+    <title>River Terrace Farm Monitor Pro | Feed Wedge</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root { 
-            --accent: #2ecc71; --bg: #f4f7f6; --text: #2c3e50; 
+            --accent: #2ecc71;
+            --bg: #f4f7f6; --text: #2c3e50; 
             --prev: #7f8c8d; --growth: #27ae60; --out: #e74c3c; 
-            --warning: #f39c12; --partial: #3498db; 
+            --warning: #f39c12; --partial: #3498db;
         }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; background: var(--bg); color: var(--text); overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex;
+        background: var(--bg); color: var(--text); overflow: hidden; }
         
-        #map { flex-grow: 1; height: 100%; background: #000; position: relative; } 
-        #sidebar { width: 380px; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000; }
+        #map { flex-grow: 1;
+        height: 100%; background: #000; position: relative; } 
+        #sidebar { width: 380px;
+        background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 1000;
+        }
         
-        .header { padding: 20px; background: #fff; border-bottom: 1px solid #eee; }
-        .avg-box { background: var(--accent); color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 5px; }
-        .avg-row { display: flex; justify-content: space-around; align-items: center; }
-        .sync-note { font-size: 10px; color: #95a5a6; text-align: center; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .header { padding: 20px;
+        background: #fff; border-bottom: 1px solid #eee; }
+        .avg-box { background: var(--accent); color: white;
+        padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 5px; }
+        .avg-row { display: flex;
+        justify-content: space-around; align-items: center; }
+        .sync-note { font-size: 10px; color: #95a5a6; text-align: center;
+        margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        #list { flex-grow: 1; overflow-y: auto; padding: 10px; scroll-behavior: smooth; }
-        .card { background: white; border: 1px solid #eee; padding: 14px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; border-left: 5px solid #ccc; position: relative; transition: 0.2s; }
-        .card:hover { background: #fafafa; }
-        .card.active { border-left-color: var(--accent); background: #f0fff4; border-right: 1px solid var(--accent); }
-        .card.is-out { opacity: 0.8; border-left-color: var(--out); }
-        .card.is-partial { border-left-color: var(--partial); background: #f0f7ff; }
+        #list { flex-grow: 1;
+        overflow-y: auto; padding: 10px; scroll-behavior: smooth; }
+        .card { background: white;
+        border: 1px solid #eee; padding: 14px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; border-left: 5px solid #ccc; position: relative; transition: 0.2s;
+        }
+        .card:hover { background: #fafafa;
+        }
+        .card.active { border-left-color: var(--accent); background: #f0fff4; border-right: 1px solid var(--accent);
+        }
+        .card.is-out { opacity: 0.8; border-left-color: var(--out);
+        }
+        .card.is-partial { border-left-color: var(--partial); background: #f0f7ff;
+        }
 
-        .val { font-size: 17px; font-weight: bold; color: var(--accent); }
-        .val.prev { color: var(--prev); font-size: 14px; }
-        .unit { font-size: 10px; color: #95a5a6; font-weight: normal; margin-left: 2px; }
-        .label { font-size: 10px; text-transform: uppercase; color: #95a5a6; font-weight: bold; display: block; }
+        .val { font-size: 17px; font-weight: bold; color: var(--accent);
+        }
+        .val.prev { color: var(--prev); font-size: 14px;
+        }
+        .unit { font-size: 10px; color: #95a5a6; font-weight: normal; margin-left: 2px;
+        }
+        .label { font-size: 10px; text-transform: uppercase; color: #95a5a6; font-weight: bold; display: block;
+        }
 
-        .map-controls { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-        .layer-group { background: white; padding: 4px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; }
-        .layer-btn { padding: 8px 15px; border: none; background: none; cursor: pointer; font-size: 11px; font-weight: bold; color: #777; border-radius: 6px; transition: 0.2s; }
-        .layer-btn.active { background: var(--accent); color: white; }
-        .date-label { background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .map-controls { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex;
+        flex-direction: column; align-items: flex-end; gap: 10px; }
+        .layer-group { background: white; padding: 4px;
+        border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; }
+        .layer-btn { padding: 8px 15px;
+        border: none; background: none; cursor: pointer; font-size: 11px; font-weight: bold; color: #777; border-radius: 6px; transition: 0.2s;
+        }
+        .layer-btn.active { background: var(--accent); color: white;
+        }
+        .date-label { background: rgba(0,0,0,0.7); color: white; padding: 5px 12px; border-radius: 20px;
+        font-size: 11px; font-weight: 600; }
 
-        .legend-box { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); width: 180px; display: none; }
-        .legend-item { display: flex; align-items: center; font-size: 11px; margin-bottom: 5px; color: #555; font-weight: 600; }
-        .legend-color { width: 14px; height: 14px; border-radius: 3px; margin-right: 10px; border: 1px solid rgba(0,0,0,0.1); }
+        .legend-box { background: white; padding: 12px; border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2); width: 180px; display: none; }
+        .legend-item { display: flex;
+        align-items: center; font-size: 11px; margin-bottom: 5px; color: #555; font-weight: 600;
+        }
+        .legend-color { width: 14px; height: 14px; border-radius: 3px; margin-right: 10px;
+        border: 1px solid rgba(0,0,0,0.1); }
 
         .paddock-label { 
-            background: rgba(255, 255, 255, 0.95) !important; 
+            background: rgba(255, 255, 255, 0.95) !important;
             border: 1px solid #333 !important; 
             padding: 4px 8px !important; 
             border-radius: 4px !important; 
@@ -55,10 +85,64 @@
             text-align: center !important;
             line-height: 1.2 !important;
         }
-        .paddock-label.show-label { opacity: 1 !important; }
+        .paddock-label.show-label { opacity: 1 !important;
+        }
 
-        .badge { color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
-        #search { width:100%; padding:12px; border-radius:6px; border:1px solid #ddd; outline:none; box-sizing: border-box; }
+        .badge { color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;
+        margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
+        #search { width:100%; padding:12px; border-radius:6px;
+        border:1px solid #ddd; outline:none; box-sizing: border-box; }
+        .fallback-alert { color: var(--warning); font-size: 10px;
+        font-weight: bold; margin-bottom: 5px; display: block; }
+
+        .calib-box {
+            margin-top: 8px;
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+        .calib-row { display:flex; justify-content:space-between; align-items:center; gap:10px;
+        }
+        .calib-pill {
+            display:inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: white;
+            background: var(--prev);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .calib-pill.good { background: var(--accent);
+        }
+        .calib-pill.warn { background: var(--warning);
+        }
+        .calib-pill.bad { background: var(--out);
+        }
+
+        .manual-chip {
+            display:inline-block;
+            margin-top: 6px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #dff3e7;
+            background: #f0fff4;
+            font-size: 10px;
+            color: #2c3e50;
+        }
+        .manual-chip b { color: var(--growth);
+        }
+        .manual-chip .muted { color:#95a5a6; font-weight:600;
+        }
+        .manual-chip.bad { border-color:#ffd2d2; background:#fff2f2;
+        }
+        .manual-chip.bad b { color: var(--out);
+        }
     </style>
 </head>
 <body>
@@ -84,6 +168,16 @@
 
 <div id="sidebar">
     <div class="header">
+        <div id="fallback-warning" class="fallback-alert" style="display:none;">⚠️ RECENT DATA LOW (UNDER 0.3) - SHOWING PREVIOUS DATE</div>
+
+        <div id="calibration-box" class="calib-box" style="display:none;">
+            <div class="calib-row">
+                <div style="font-weight:800; color:#2c3e50; font-size:10px; text-transform:uppercase;">FARMWALK CALIBRATION CONFIDENCE</div>
+                <span id="calib-pill" class="calib-pill">--</span>
+            </div>
+            <div id="calib-text" style="margin-top:6px; line-height:1.35; display:none;">--</div>
+        </div>
+
         <div class="avg-box">
             <div class="avg-row">
                 <div class="avg-item"><small>FARM AVG COVER</small><div id="total-avg" style="font-size: 22px; font-weight: bold;">0</div><small>kgDM/ha</small></div>
@@ -98,27 +192,120 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+/* =======================
+   URLs [RIVER TERRACE]
+======================= */
 const GEOJSON_URL = "https://storage.googleapis.com/ndvi-exports/paddocks.geojson";
 const DATA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBBRftvApfrkHKVQh9FV1qsYVy3Y2whaHKfyAWJ5Ymbc1cTcw7IzB4epF8h_-rN1dxD-N7bdaJyp1V/pub?gid=0&single=true&output=csv";
 const EXCLUSIONS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBBRftvApfrkHKVQh9FV1qsYVy3Y2whaHKfyAWJ5Ymbc1cTcw7IzB4epF8h_-rN1dxD-N7bdaJyp1V/pub?gid=494849216&single=true&output=csv";
 const PARTIAL_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBBRftvApfrkHKVQh9FV1qsYVy3Y2whaHKfyAWJ5Ymbc1cTcw7IzB4epF8h_-rN1dxD-N7bdaJyp1V/pub?gid=369172552&single=true&output=csv";
+const MANUAL_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRBBRftvApfrkHKVQh9FV1qsYVy3Y2whaHKfyAWJ5Ymbc1cTcw7IzB4epF8h_-rN1dxD-N7bdaJyp1V/pub?gid=564540457&single=true&output=csv";
 
+/* =======================
+   Rules
+======================= */
+const NDVI_LOW_THRESHOLD = 0.30;
+const NDVI_LOW_MAX_PCT   = 0.60;
+const SCENE_LOOKBACK     = 3;
+const GAP_DAYS_MAX       = 3;
+const GRAZE_FACTOR       = 0.65;
+const RATIO_MIN          = 0.55;
+const RATIO_MAX          = 1.80;
+
+/* =======================
+   State
+======================= */
 let map, ndviLayer, geoLayer, baseLayer;
 let paddockData = [];
-let paddockMap = {}; 
+let paddockMap = {};
 let areaLookup = {}; 
 let excludedPaddocks = new Map(); 
 let partialPaddocks = new Set();
-let currentViewMode = 'ndvi'; 
+let currentViewMode = 'ndvi';
+let manualEntries = [];
+let farmGrowthRate = 0;
+let calibrationModel = null;
+let selectedSceneTs = null;
+
+/* =======================
+   Helpers
+======================= */
+function normName(s){ return (s||"").trim().toLowerCase(); }
 
 function parseStrangeDate(dateStr) {
-    if (!dateStr || dateStr.trim() === "") return null;
-    if (!isNaN(dateStr) && dateStr.length > 5) return new Date((parseFloat(dateStr) - 25569) * 86400 * 1000);
-    if (dateStr.includes('/')) {
-        const parts = dateStr.split('/');
-        if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    if (dateStr === null || dateStr === undefined) return null;
+    const s = (""+dateStr).trim();
+    if (s === "") return null;
+    try {
+        if (!isNaN(s) && s.length > 5) {
+            const d = new Date((parseFloat(s) - 25569) * 86400 * 1000);
+            return isNaN(d) ? null : d;
+        }
+    } catch(e){}
+    if (s.includes('/')) {
+        const parts = s.split('/');
+        if (parts.length === 3) {
+            const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            return isNaN(d) ? null : d;
+        }
     }
-    return new Date(dateStr);
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+}
+
+function fmtNZ(dateObj){
+    return dateObj ? dateObj.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' }) : "";
+}
+
+function safeNum(x){
+    if (x === null || x === undefined) return NaN;
+    const s = (""+x).replace(/,/g,'').trim();
+    const n = parseFloat(s);
+    return isNaN(n) ? NaN : n;
+}
+
+function focusPaddockOnMap(paddockName, color) {
+    if (!paddockMap[paddockName] || !geoLayer) return;
+    updateGeoStyles();
+    const layer = paddockMap[paddockName];
+    try {
+        const bounds = layer.getBounds();
+        if (bounds && bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
+        }
+    } catch (e) {}
+    layer.setStyle({ color: color, weight: 4, fillOpacity: 0.5 });
+    if (layer.bringToFront) layer.bringToFront();
+}
+
+/* =======================
+   Loaders
+======================= */
+async function loadManualSheet(){
+    manualEntries = [];
+    try{
+        const res = await fetch(MANUAL_CSV_URL + "&t=" + Date.now());
+        const txt = await res.text();
+        Papa.parse(txt, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                const rows = results.data || [];
+                const fields = (results.meta && results.meta.fields) ? results.meta.fields : [];
+                const f = fields.map(h => (h||"").trim().toLowerCase());
+                const idxName = f.findIndex(h => h.includes('paddock'));
+                const idxDate = f.findIndex(h => h === 'date' || h.includes('date'));
+                const idxCover = f.findIndex(h => h.includes('measured') || h.includes('manual') || h.includes('cover') || h.includes('kg'));
+                rows.forEach(r => {
+                    const name = (idxName>=0 ? r[fields[idxName]] : r.paddock_name || r.paddock || r.name || "").toString().trim();
+                    const dateObj = parseStrangeDate(idxDate>=0 ? r[fields[idxDate]] : r.date);
+                    const cover = safeNum(idxCover>=0 ? r[fields[idxCover]] : (r.measured_cover || r.cover || r.manual_cover));
+                    if(!name || !dateObj || isNaN(cover) || cover <= 0) return;
+                    manualEntries.push({ name, lower: normName(name), dateObj, cover: Math.round(cover) });
+                });
+            }
+        });
+    } catch(e){ console.error("Manual sheet error", e); }
 }
 
 async function loadStatusSheets() {
@@ -133,12 +320,9 @@ async function loadStatusSheets() {
             if(cols[0]) excludedPaddocks.set(cols[0], cols[1] || 'out');
         });
         const textPa = await resPa.text();
-        textPa.split('\n').filter(l => l.trim() !== '').forEach(line => {
-            // Split by comma and take the first column
+        textPa.split('\n').filter(l => l.trim() !== '').slice(1).forEach(line => {
             const name = line.split(',')[0].trim().toLowerCase();
-            if(name) {
-                partialPaddocks.add(name);
-            }
+            if(name) partialPaddocks.add(name);
         });
     } catch (e) { console.error("Status sheets error", e); }
 }
@@ -147,8 +331,20 @@ async function init() {
     map = L.map('map', { zoomControl: false, minZoom: 13, maxZoom: 20 }).setView([-42.679, 172.879], 14);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     baseLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
-    await loadStatusSheets();
+    await Promise.all([loadStatusSheets(), loadManualSheet()]);
     loadGeoJSON();
+
+    // Hover logic for calibration confidence
+    const calibBox = document.getElementById('calibration-box');
+    const calibText = document.getElementById('calib-text');
+    if (calibBox && calibText) {
+        calibBox.addEventListener('mouseenter', () => {
+            calibText.style.display = 'block';
+        });
+        calibBox.addEventListener('mouseleave', () => {
+            calibText.style.display = 'none';
+        });
+    }
 }
 
 async function loadGeoJSON() {
@@ -161,24 +357,16 @@ async function loadGeoJSON() {
             onEachFeature: (feature, layer) => {
                 const pName = feature.properties.name;
                 paddockMap[pName] = layer;
-                
-                // Content will be updated in loadCSV once data is ready
-                layer.bindTooltip("", { 
-                    permanent: true, 
-                    direction: 'center', 
-                    className: 'paddock-label'
-                });
-
-                layer.on('mouseover', function() {
-                    const tip = layer.getTooltip();
-                    if (tip && tip.getElement()) tip.getElement().classList.add('show-label');
-                });
-                layer.on('mouseout', function() {
-                    const tip = layer.getTooltip();
-                    if (tip && tip.getElement()) tip.getElement().classList.remove('show-label');
-                });
+                layer.bindTooltip("", { permanent: true, direction: 'center', className: 'paddock-label' });
+                layer.on('mouseover', function() { const tip = layer.getTooltip(); if (tip && tip.getElement()) tip.getElement().classList.add('show-label'); });
+                layer.on('mouseout', function() { const tip = layer.getTooltip(); if (tip && tip.getElement()) tip.getElement().classList.remove('show-label'); });
                 layer.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
+                    const lowerName = (pName || "").toLowerCase();
+                    const isOut = !!excludedPaddocks.get(lowerName);
+                    const isPartial = partialPaddocks.has(lowerName) && !isOut;
+                    const color = isOut ? '#e74c3c' : (isPartial ? 'var(--partial)' : 'var(--accent)');
+                    focusPaddockOnMap(pName, color);
                     const cardId = `card-${pName.replace(/\s+/g, '-')}`;
                     const card = document.getElementById(cardId);
                     if(card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.click(); }
@@ -190,6 +378,115 @@ async function loadGeoJSON() {
     } catch (e) { console.error("GeoJSON Error", e); loadCSV(); }
 }
 
+/* =======================
+   Core Logic
+======================= */
+function pickSceneTimestamp(grouped){
+    const set = new Set();
+    Object.values(grouped).forEach(arr => arr.forEach(e => { if(e.dateObj) set.add(e.dateObj.getTime()); }));
+    const dates = Array.from(set).sort((a,b)=>b-a);
+    if(dates.length === 0) return { ts: null, fallback: false };
+    const candidates = dates.slice(0, SCENE_LOOKBACK);
+    let ts = null; let fallback = false;
+    for (let i=0;i<candidates.length;i++){
+        const t = candidates[i];
+        const ndvis = Object.values(grouped).map(arr => arr.find(e => e.dateObj && e.dateObj.getTime() === t)).filter(Boolean).map(e => e.ndvi).filter(v => isFinite(v));
+        if(ndvis.length === 0) continue;
+        const pctLow = ndvis.filter(v => v < NDVI_LOW_THRESHOLD).length / ndvis.length;
+        if(pctLow < NDVI_LOW_MAX_PCT){ ts = t; fallback = (i > 0); break; }
+    }
+    if(ts === null){ ts = candidates[0]; fallback = true; }
+    return { ts, fallback };
+}
+
+function estimateFarmGrowthRate(history){
+    let tWGrowth = 0, tAreaG = 0;
+    Object.keys(history).forEach(name => {
+        const sorted = history[name];
+        if(!sorted || sorted.length < 2) return;
+        const latest = sorted[0];
+        const previous = sorted.find(s => s.dateObj < latest.dateObj) || null;
+        if(!previous || !latest || !latest.dateObj || !previous.dateObj) return;
+        const dayDiff = (latest.dateObj - previous.dateObj)/86400000;
+        if(dayDiff <= 0) return;
+        const lc = latest.cover_raw; const pc = previous.cover_raw;
+        if(!(lc > pc)) return;
+        const g = Math.round((lc - pc)/dayDiff);
+        if(!isFinite(g) || g <= 0) return;
+        const isOut = !!excludedPaddocks.get(normName(name));
+        if(isOut) return;
+        const area = areaLookup[name] || 0;
+        if(area > 0){ tWGrowth += g * area; tAreaG += area; } else { tWGrowth += g; tAreaG += 1; }
+    });
+    return tAreaG > 0 ? Math.round(tWGrowth/tAreaG) : 0;
+}
+
+function buildCalibrationModel(historyLower){
+    const pairs = [];
+    for(const m of manualEntries){
+        const hist = historyLower[m.lower];
+        if(!hist || hist.length === 0) continue;
+        
+        if (partialPaddocks.has(m.lower)) continue;
+
+        const s = hist[0]; if(!s || !s.dateObj) continue;
+        const gapDays = Math.abs((m.dateObj - s.dateObj)/86400000);
+        if(gapDays > GAP_DAYS_MAX) continue;
+        const satRaw = s.cover_raw;
+        if(!isFinite(satRaw) || satRaw <= 0) continue;
+        const manualProjected = m.cover - (farmGrowthRate * gapDays);
+        if(!isFinite(manualProjected) || manualProjected <= 0) continue;
+        if(manualProjected < satRaw * GRAZE_FACTOR) continue;
+        const ratio = manualProjected / satRaw;
+        if(ratio < RATIO_MIN || ratio > RATIO_MAX) continue;
+        pairs.push({ x: satRaw, y: manualProjected });
+    }
+    if(pairs.length < 4) return null;
+    const n = pairs.length;
+    const meanX = pairs.reduce((a,p)=>a+p.x,0)/n;
+    const meanY = pairs.reduce((a,p)=>a+p.y,0)/n;
+    let num=0, den=0;
+    pairs.forEach(p => { num += (p.x-meanX)*(p.y-meanY); den += (p.x-meanX)*(p.x-meanX); });
+    const a = den !== 0 ? (num/den) : 1; const b = meanY - a*meanX;
+    let ssTot=0, ssRes=0;
+    pairs.forEach(p => {
+        const pred = a*p.x + b;
+        ssTot += (p.y-meanY)*(p.y-meanY); ssRes += (p.y-pred)*(p.y-pred);
+    });
+    const r2 = ssTot !== 0 ? (1 - ssRes/ssTot) : 0;
+    return { a, b, r2, count: n };
+}
+
+function applyCalibrationToHistory(history){
+    if(!calibrationModel) return;
+    Object.keys(history).forEach(name => {
+        history[name].forEach(e => {
+            const raw = e.cover_raw; if(!isFinite(raw)) return;
+            const cal = calibrationModel.a * raw + calibrationModel.b;
+            e.cover = Math.max(0, Math.round(cal));
+        });
+    });
+}
+
+function updateCalibrationUI(){
+    const box = document.getElementById('calibration-box');
+    const pill = document.getElementById('calib-pill');
+    const text = document.getElementById('calib-text');
+    if(!calibrationModel){ box.style.display = 'none'; return; }
+    box.style.display = 'block'; text.style.display = 'none';
+    let label = 'WEAK'; let cls = 'bad';
+    if (calibrationModel.r2 >= 0.85){ label = 'HIGH'; cls = 'good'; }
+    else if (calibrationModel.r2 >= 0.70){ label = 'GOOD'; cls = 'good'; }
+    else if (calibrationModel.r2 >= 0.50){ label = 'LOW'; cls = 'warn'; }
+    pill.className = `calib-pill ${cls}`; pill.textContent = `${label}`;
+    text.innerHTML = `
+        <div><b style="color:#2c3e50;">R²</b> ${calibrationModel.r2.toFixed(2)} &nbsp; <span style="color:#c0c6cc;">|</span> &nbsp;
+        <b style="color:#2c3e50;">Calibrators</b> ${calibrationModel.count}</div>
+        <div style="margin-top:3px;"><b style="color:#2c3e50;">Model</b> cover = ${calibrationModel.a.toFixed(2)}×raw + ${Math.round(calibrationModel.b)}</div>
+        <div style="margin-top:3px; font-size:10px; color:#95a5a6;">Scene-valid • gap ≤ ${GAP_DAYS_MAX}d • grazing-filter • ratio filter</div>
+    `;
+}
+
 async function loadCSV() {
     try {
         const response = await fetch(DATA_CSV_URL + "&t=" + Date.now());
@@ -197,28 +494,41 @@ async function loadCSV() {
         Papa.parse(csvText, {
             header: true, skipEmptyLines: true,
             complete: (results) => {
-                const history = {};
+                const grouped = {};
                 const updateCol = results.meta.fields.find(c => c.toLowerCase().includes('update')) || 'latest-update';
                 results.data.forEach(row => {
-                    const name = row.paddock_name;
-                    if(!name) return;
-                    const ndvi = parseFloat(row.ndvi_mean);
+                    const name = row.paddock_name; if(!name) return;
+                    const ndvi = parseFloat(row.ndvi_mean || row.ndvi_effective);
                     const cloud = parseFloat(row.cloud_pc) || 0;
-                    let cover = 0;
-                    if (!isNaN(ndvi)) {
-                        let base = 331.62 * Math.exp(2.4555 * ndvi);
-                        let mod = (cloud <= 10) ? 0.90 : (cloud > 30 ? 1.15 : (cloud > 20 ? 1.10 : 1.0));
-                        cover = Math.max(0, Math.round(base * mod));
-                    }
-                    if(!history[name]) history[name] = [];
                     const dateObj = parseStrangeDate(row.date);
                     const rawUrl = (row[updateCol] || row.map_id || "").trim();
-                    history[name].push({
-                        name, cover, dateObj,
-                        formattedDate: (dateObj && !isNaN(dateObj)) ? dateObj.toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' }) : "",
-                        url: rawUrl.replace(/['"]+/g, '') 
+                    if(!dateObj) return;
+                    if(!grouped[name]) grouped[name] = [];
+                    grouped[name].push({ name, ndvi, cloud, dateObj, url: rawUrl.replace(/['"]+/g, '') });
+                });
+                const pick = pickSceneTimestamp(grouped);
+                selectedSceneTs = pick.ts;
+                document.getElementById('fallback-warning').style.display = !!pick.fallback ? 'block' : 'none';
+                const history = {};
+                Object.keys(grouped).forEach(name => {
+                    let all = grouped[name].slice().sort((a,b) => b.dateObj - a.dateObj);
+                    let selected = (selectedSceneTs !== null) ? (all.find(e => e.dateObj && e.dateObj.getTime() === selectedSceneTs) || null) : null;
+                    let ordered = selected ? [selected] : [];
+                    ordered = ordered.concat(all.filter(e => !selected || e.dateObj.getTime() < selectedSceneTs));
+                    history[name] = ordered.map(entry => {
+                        let cover = 0;
+                        if (!isNaN(entry.ndvi)) {
+                            let base = 331.62 * Math.exp(2.4555 * entry.ndvi);
+                            let mod = (entry.cloud <= 10) ? 0.90 : (entry.cloud > 30 ? 1.15 : (entry.cloud > 20 ? 1.10 : 1.0));
+                            cover = Math.max(0, Math.round(base * mod));
+                        }
+                        return { ...entry, cover_raw: cover, cover: cover, formattedDate: fmtNZ(entry.dateObj) };
                     });
                 });
+                farmGrowthRate = estimateFarmGrowthRate(history);
+                const historyLower = {}; Object.keys(history).forEach(k => { historyLower[normName(k)] = history[k]; });
+                calibrationModel = buildCalibrationModel(historyLower);
+                applyCalibrationToHistory(history); updateCalibrationUI();
                 processPaddockData(history);
             }
         });
@@ -226,12 +536,9 @@ async function loadCSV() {
 }
 
 function getCoverColor(cover) {
-    if (cover > 2800) return '#00441b'; 
-    if (cover > 2400) return '#006d2c';
-    if (cover > 2000) return '#238b45';
-    if (cover > 1600) return '#41ab5d';
-    if (cover > 1200) return '#74c476';
-    return '#a1d99b'; 
+    if (cover > 2800) return '#00441b'; if (cover > 2400) return '#006d2c';
+    if (cover > 2000) return '#238b45'; if (cover > 1600) return '#41ab5d';
+    if (cover > 1200) return '#74c476'; return '#a1d99b'; 
 }
 
 function updateGeoStyles() {
@@ -240,15 +547,10 @@ function updateGeoStyles() {
         const pName = layer.feature.properties.name;
         const p = paddockData.find(pd => pd.name === pName);
         if (!p) return;
-
-        // Update Tooltip Content with Cover
-        const tooltipContent = `<div style="font-weight:bold; font-size:12px;">${pName}</div><div style="font-size:11px; color:#27ae60;">${p.latest.cover} kgDM</div>`;
-        layer.setTooltipContent(tooltipContent);
-
+        layer.setTooltipContent(`<div style="font-weight:bold; font-size:12px;">${pName}</div><div style="font-size:11px; color:#27ae60;">${p.latest.cover} kgDM</div>`);
         if (currentViewMode === 'cover') {
             let color = getCoverColor(p.latest.cover);
-            if (p.isOut) color = '#ff7675';
-            else if (p.isPartial) color = '#3498db';
+            if (p.isOut) color = '#ff7675'; else if (p.isPartial) color = '#3498db';
             layer.setStyle({ fillColor: color, fillOpacity: 0.8, color: 'white', weight: 1 });
         } else {
             layer.setStyle({ fillColor: 'transparent', fillOpacity: 0.1, color: 'white', weight: 1.5 });
@@ -261,87 +563,90 @@ function setLayerMode(mode) {
     document.getElementById('btn-ndvi').classList.toggle('active', mode === 'ndvi');
     document.getElementById('btn-cover').classList.toggle('active', mode === 'cover');
     document.getElementById('legend').style.display = (mode === 'cover') ? 'block' : 'none';
-    
-    if (ndviLayer) {
-        if (mode === 'ndvi') ndviLayer.addTo(map);
-        else map.removeLayer(ndviLayer);
-    }
+    if (ndviLayer) { if (mode === 'ndvi') ndviLayer.addTo(map); else map.removeLayer(ndviLayer); }
     updateGeoStyles();
+}
+
+function findBestManualForPaddock(paddockName){
+    const lower = normName(paddockName);
+    let best = null; let bestAbs = Infinity;
+    for(const m of manualEntries){
+        if(m.lower !== lower || !selectedSceneTs) continue;
+        const gapDays = Math.abs((m.dateObj - new Date(selectedSceneTs))/86400000);
+        if(gapDays < bestAbs){ bestAbs = gapDays; best = { ...m, gapDays }; }
+    }
+    return best;
+}
+
+function manualCalibratorStatus(manual, satRaw, lowerName){
+    if(!manual || !selectedSceneTs) return { ok:false, reason:"", className:"" };
+    if(partialPaddocks.has(lowerName)) return { ok:false, reason:"partial", className:"bad" };
+    if(manual.gapDays > GAP_DAYS_MAX) return { ok:false, reason:`gap ${manual.gapDays.toFixed(0)}d`, className:"bad" };
+    const projected = manual.cover - (farmGrowthRate * manual.gapDays);
+    if(!isFinite(projected) || projected <= 0 || !isFinite(satRaw) || satRaw <= 0) return { ok:false, reason:"invalid", className:"bad" };
+    if(projected < satRaw * GRAZE_FACTOR) return { ok:false, reason:"likely grazed", className:"bad" };
+    const ratio = projected / satRaw;
+    if(ratio < RATIO_MIN || ratio > RATIO_MAX) return { ok:false, reason:"outlier", className:"bad" };
+    return { ok:true, reason:"used", className:"" };
 }
 
 function processPaddockData(history) {
     let globalLatestDate = "";
     paddockData = Object.keys(history).map(name => {
-        const sorted = history[name].sort((a,b) => (b.dateObj || 0) - (a.dateObj || 0));
-        const latest = sorted[0];
+        const sorted = history[name]; const latest = sorted[0];
         const previous = sorted.find(s => s.dateObj < latest.dateObj) || null;
-        const area = areaLookup[name] || 0;
-        const lowerName = name.toLowerCase();
+        const area = areaLookup[name] || 0; const lowerName = name.toLowerCase();
         const isOut = !!excludedPaddocks.get(lowerName);
         const isPartial = partialPaddocks.has(lowerName) && !isOut;
-        if (latest.formattedDate && (!globalLatestDate || latest.dateObj > parseStrangeDate(globalLatestDate))) globalLatestDate = latest.formattedDate;
+        if (latest.formattedDate && (!globalLatestDate || latest.formattedDate !== "")) globalLatestDate = latest.formattedDate;
         let growthRate = null;
         if (previous && latest.dateObj && previous.dateObj) {
             const dayDiff = (latest.dateObj - previous.dateObj) / 86400000;
             if (dayDiff > 0 && latest.cover > previous.cover) growthRate = Math.round((latest.cover - previous.cover) / dayDiff);
         }
-        return { name, latest, previous, growthRate, area, isOut, reason: excludedPaddocks.get(lowerName), isPartial };
+        const manual = findBestManualForPaddock(name);
+        const mStatus = manual ? manualCalibratorStatus(manual, latest.cover_raw, lowerName) : { ok:false, reason:"", className:"" };
+        return { name, latest, previous, growthRate, area, isOut, reason: excludedPaddocks.get(lowerName), isPartial, manual, mStatus };
     }).sort((a, b) => {
         if (a.isPartial !== b.isPartial) return a.isPartial ? -1 : 1;
         if (a.isOut !== b.isOut) return a.isOut ? 1 : -1;
         return b.latest.cover - a.latest.cover;
     });
-
     document.getElementById('latest-date').innerText = `LATEST IMAGERY: ${globalLatestDate}`;
-    renderDashboard();
-    updateGeoStyles();
+    renderDashboard(); updateGeoStyles();
 }
 
 function renderDashboard() {
     let tWCover = 0, tAreaC = 0, tWGrowth = 0, tAreaG = 0;
     paddockData.forEach(p => {
         if (p.area > 0 && !p.isOut) {
-            tWCover += (p.latest.cover * p.area); 
-            tAreaC += p.area;
+            tWCover += (p.latest.cover * p.area); tAreaC += p.area;
             if (p.growthRate && p.growthRate > 0) { tWGrowth += (p.growthRate * p.area); tAreaG += p.area; }
         }
     });
-
     document.getElementById('total-avg').innerText = tAreaC > 0 ? Math.round(tWCover/tAreaC).toLocaleString() : "0";
     document.getElementById('avg-growth').innerText = tAreaG > 0 ? "+" + Math.round(tWGrowth/tAreaG) : "0";
     document.getElementById('sync-time').innerText = new Date().toLocaleTimeString();
-
-    const list = document.getElementById('list');
-    list.innerHTML = "";
+    const list = document.getElementById('list'); list.innerHTML = "";
     paddockData.forEach(p => {
         const div = document.createElement('div');
         div.className = `card ${p.isOut ? 'is-out' : ''} ${p.isPartial ? 'is-partial' : ''}`;
         div.id = `card-${p.name.replace(/\s+/g, '-')}`;
         let badges = "";
         if (p.isOut) badges += `<span class="badge" style="background:${(p.reason.toUpperCase()==='CROP'?'var(--warning)':'var(--out)')}">${p.reason.toUpperCase()}</span>`;
-        if (p.isPartial) badges += `<span class="badge" style="background:var(--partial)">PARTIALLY GRAZED</span>`;
-        div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px"><b>${p.name} ${badges}</b><span style="font-size:11px; background:#eee; padding:2px 5px; border-radius:3px">${p.area.toFixed(1)} ha</span></div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-                <div><span class="label">Latest Cover</span><span class="val" style="color:${p.isPartial ? 'var(--partial)' : (p.isOut ? 'var(--out)' : 'var(--accent)')}">${p.latest.cover}<span class="unit">kgDM/ha</span></span><br><small style="color:#95a5a6">${p.latest.formattedDate}</small></div>
-                ${p.previous ? `<div><span class="label">Previous</span><span class="val prev">${p.previous.cover}</span><br><small style="color:#95a5a6">${p.previous.formattedDate}</small></div>` : '<div></div>'}
-            </div>
-            ${(p.growthRate && !p.isOut) ? `<div style="position:absolute; top:14px; right:60px; text-align:right"><span style="color:var(--growth); font-weight:bold">${p.growthRate>0?'+':''}${p.growthRate}</span><br><small style="font-size:9px; color:#95a5a6">kg/day</small></div>` : ''}
-        `;
+        if (p.isPartial) badges += `<span class="badge" style="background:var(--partial)">PARTIAL</span>`;
+        if (p.manual && p.mStatus && p.mStatus.ok && calibrationModel) badges += `<span class="badge" style="background:var(--accent)">CAL</span>`;
+        else if (p.manual && calibrationModel) badges += `<span class="badge" style="background:var(--prev)">MAN</span>`;
+        const manualHtml = p.manual ? `<div class="manual-chip ${p.mStatus && !p.mStatus.ok ? 'bad' : ''}"><span class="muted">MANUAL</span> <b>${Math.round(p.manual.cover)}</b> kgDM/ha <span class="muted"> • </span>${fmtNZ(p.manual.dateObj)} <span class="muted"> • </span>${(p.mStatus && p.mStatus.ok) ? 'used' : (p.mStatus && p.mStatus.reason ? p.mStatus.reason : 'not used')}</div>` : ``;
+        div.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:8px"><b>${p.name} ${badges}</b><span style="font-size:11px; background:#eee; padding:2px 5px; border-radius:3px">${p.area.toFixed(1)} ha</span></div><div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px"><div><span class="label">Latest Cover</span><span class="val" style="color:${p.isPartial ? 'var(--partial)' : (p.isOut ? 'var(--out)' : 'var(--accent)')}">${p.latest.cover}<span class="unit">kgDM/ha</span></span><br><small style="color:#95a5a6">${p.latest.formattedDate}</small>${manualHtml}</div>${p.previous ? `<div><span class="label">Previous</span><span class="val prev">${p.previous.cover}</span><br><small style="color:#95a5a6">${p.previous.formattedDate}</small></div>` : '<div></div>'}</div>${(p.growthRate && !p.isOut) ? `<div style="position:absolute; top:14px; right:60px; text-align:right"><span style="color:var(--growth); font-weight:bold">${p.growthRate>0?'+':''}${p.growthRate}</span><br><small style="font-size:9px; color:#95a5a6">kg/day</small></div>` : ''}`;
         div.onclick = () => {
             document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-            div.classList.add('active');
-            updateMapTile(p.latest.url);
-            if(paddockMap[p.name]) {
-                updateGeoStyles(); 
-                let color = p.isOut ? '#e74c3c' : (p.isPartial ? 'var(--partial)' : 'var(--accent)');
-                paddockMap[p.name].setStyle({ color: color, weight: 4, fillOpacity: 0.5 });
-            }
+            div.classList.add('active'); updateMapTile(p.latest.url);
+            focusPaddockOnMap(p.name, p.isOut ? '#e74c3c' : (p.isPartial ? 'var(--partial)' : 'var(--accent)'));
         };
         list.appendChild(div);
     });
-
-    const topPaddock = paddockData.find(p => p.latest.url.length > 10 && !p.isOut);
+    const topPaddock = paddockData.find(p => p.latest.url && p.latest.url.length > 10 && !p.isOut);
     if(topPaddock) updateMapTile(topPaddock.latest.url);
 }
 
@@ -361,4 +666,3 @@ init();
 </script>
 </body>
 </html>
-
